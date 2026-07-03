@@ -8,16 +8,14 @@ let dailyTotal = parseInt(localStorage.getItem('stackerDailyTotal')) || 0;
 
 const today = new Date().toDateString();
 
-// Hardware Audio Engine (Generates sound dynamically)
+// Hardware Audio Engine
 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 function playThwompSound() {
     if (audioCtx.state === 'suspended') audioCtx.resume();
-    
     const oscillator = audioCtx.createOscillator();
     const gainNode = audioCtx.createGain();
     
-    // Creates a physical "pop/thwomp" sound
     oscillator.type = 'sine';
     oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
     oscillator.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
@@ -32,9 +30,20 @@ function playThwompSound() {
     oscillator.stop(audioCtx.currentTime + 0.1);
 }
 
+// Modal Toggle Logic
+function toggleModal() {
+    const modal = document.getElementById('rules-modal');
+    if (modal.style.display === "flex") {
+        modal.style.display = "none";
+    } else {
+        modal.style.display = "flex";
+        playThwompSound();
+    }
+}
+
 // New Day Check Logic
 if (lastDate !== today) {
-    if (lastDate && pending > 0) streak = 0; // Break streak if yesterday wasn't finished
+    if (lastDate && pending > 0) streak = 0; 
     pending = 0;
     completed = 0;
     dailyTotal = 0;
@@ -56,16 +65,11 @@ function updateUI() {
     document.getElementById('lifetime-display').innerText = `🧱 Lifetime: ${lifetime}`;
     document.getElementById('streak-display').innerText = `🔥 Streak: ${streak}`;
 
-    // Progress Bar Logic (FIXED)
     let progress = 0;
-    if (dailyTotal > 0) {
-        progress = (completed / dailyTotal) * 100;
-    }
-    // Cap it at 100% so the bar doesn't break if you do overtime
+    if (dailyTotal > 0) progress = (completed / dailyTotal) * 100;
     progress = Math.min(progress, 100);
     document.getElementById('progress-bar').style.width = `${progress}%`;
 
-    // Smart Button Logic
     const btnSet = document.getElementById('btn-set');
     const btnOne = document.getElementById('btn-one');
     const btnBulk = document.getElementById('btn-bulk');
@@ -106,7 +110,7 @@ function addMoreTarget() {
     let extra = prompt("How many overtime bricks are you adding?");
     if (extra && !isNaN(extra) && extra > 0) {
         pending += parseInt(extra);
-        dailyTotal += parseInt(extra); // Adjust the bar to account for new total
+        dailyTotal += parseInt(extra);
         document.getElementById('status-msg').innerText = "Overtime authorized. Grind.";
         playThwompSound();
         updateUI();
@@ -120,7 +124,7 @@ function processTransfer(amount) {
     completed += amount;
     lifetime += amount;
     
-    playThwompSound(); // Fire audio physical feedback
+    playThwompSound();
 
     if (pending === 0) {
         streak += 1; 
@@ -145,12 +149,10 @@ function transferBulk() {
     if (amount && !isNaN(amount) && amount > 0) processTransfer(parseInt(amount));
 }
 
-// Initial Boot
 window.onload = function() {
-    // Requires a click anywhere on the page to unlock audio context in mobile browsers
     document.body.addEventListener('click', () => {
         if (audioCtx.state === 'suspended') audioCtx.resume();
     }, { once: true });
-    
     updateUI();
 };
+
