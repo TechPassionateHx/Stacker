@@ -1,83 +1,123 @@
-// Load saved data from phone/browser memory
+// Load Data
 let pending = parseInt(localStorage.getItem('stackerPending')) || 0;
 let completed = parseInt(localStorage.getItem('stackerCompleted')) || 0;
+let lifetime = parseInt(localStorage.getItem('stackerLifetime')) || 0;
+let streak = parseInt(localStorage.getItem('stackerStreak')) || 0;
+let lastDate = localStorage.getItem('stackerDate');
+let dailyTotal = parseInt(localStorage.getItem('stackerDailyTotal')) || 0;
+
+const today = new Date().toDateString();
+
+// New Day Check Logic
+if (lastDate !== today) {
+    if (lastDate) {
+        // If yesterday was completed, keep streak. Otherwise break it.
+        if (pending > 0) streak = 0; 
+    }
+    pending = 0;
+    completed = 0;
+    dailyTotal = 0;
+    localStorage.setItem('stackerDate', today);
+    saveData();
+}
+
+function saveData() {
+    localStorage.setItem('stackerPending', pending);
+    localStorage.setItem('stackerCompleted', completed);
+    localStorage.setItem('stackerLifetime', lifetime);
+    localStorage.setItem('stackerStreak', streak);
+    localStorage.setItem('stackerDailyTotal', dailyTotal);
+}
 
 function updateUI() {
     document.getElementById('pending-count').innerText = pending;
     document.getElementById('completed-count').innerText = completed;
-    
-    // Auto-save instantly
-    localStorage.setItem('stackerPending', pending);
-    localStorage.setItem('stackerCompleted', completed);
+    document.getElementById('lifetime-display').innerText = `🧱 Lifetime: ${lifetime}`;
+    document.getElementById('streak-display').innerText = `🔥 Streak: ${streak}`;
+
+    // Progress Bar Logic
+    let progress = 0;
+    if (dailyTotal > 0) {
+        progress = (completed / dailyTotal) * 100;
+    }
+    document.getElementById('progress-bar').style.width = `${progress}%`;
+
+    // Smart Button Logic
+    const btnSet = document.getElementById('btn-set');
+    const btnOne = document.getElementById('btn-one');
+    const btnBulk = document.getElementById('btn-bulk');
+    const btnMore = document.getElementById('btn-more');
+
+    if (pending === 0 && completed === 0) {
+        // Start of day
+        btnSet.style.display = "block";
+        btnOne.style.display = "none";
+        btnBulk.style.display = "none";
+        btnMore.style.display = "none";
+    } else if (pending > 0) {
+        // Grinding
+        btnSet.style.display = "none";
+        btnOne.style.display = "block";
+        btnBulk.style.display = "block";
+        btnMore.style.display = "none";
+    } else if (pending === 0 && completed > 0) {
+        // Target Destroyed
+        btnSet.style.display = "none";
+        btnOne.style.display = "none";
+        btnBulk.style.display = "none";
+        btnMore.style.display = "block";
+    }
+    saveData();
 }
 
 function setTarget() {
-    let target = prompt("Enter today's total target (Number of bricks/questions):");
+    let target = prompt("Set today's target (Number of bricks):");
     if (target && !isNaN(target) && target > 0) {
         pending = parseInt(target);
-        completed = 0; // Reset completed box for a fresh grind
+        dailyTotal = pending;
         document.getElementById('status-msg').innerText = "Target locked. Start stacking.";
         document.getElementById('status-msg').style.color = "#888";
         updateUI();
     }
 }
 
-function processTransfer(amount) {
-    if (pending <= 0) {
-        alert("Target already crushed. Set a new target to keep building.");
-        return;
+function addMoreTarget() {
+    let extra = prompt("How many overtime bricks are you adding?");
+    if (extra && !isNaN(extra) && extra > 0) {
+        pending += parseInt(extra);
+        dailyTotal += parseInt(extra);
+        document.getElementById('status-msg').innerText = "Overtime authorized. Get to work.";
+        updateUI();
     }
+}
 
-    if (amount > pending) amount = pending; // Prevents negative numbers
+function processTransfer(amount) {
+    if (amount > pending) amount = pending;
 
     pending -= amount;
     completed += amount;
-    updateUI();
+    lifetime += amount;
 
     if (pending === 0) {
-        // Physical Task Generator
-        const tasks = [
-            "Do 15 pushups immediately!", 
-            "Do 20 squats right now!", 
-            "Hold a plank for 60 seconds!"
-        ];
+        streak += 1; // Target hit, increase streak
+        const tasks = ["Do 15 pushups!", "Do 20 squats!", "Hold a 60s plank!"];
         const task = tasks[Math.floor(Math.random() * tasks.length)];
         
         document.getElementById('status-msg').innerText = `TARGET DESTROYED! ${task}`;
         document.getElementById('status-msg').style.color = "#2ecc71";
         
-        // Visual BOOM
-        confetti({
-            particleCount: 200,
-            spread: 90,
-            origin: { y: 0.6 },
-            colors: ['#f39c12', '#2ecc71', '#3498db']
-        });
+        confetti({ particleCount: 200, spread: 90, origin: { y: 0.6 }, colors: ['#f39c12', '#2ecc71'] });
     } else {
-        const msgs = ["Solid rep.", "Keep stacking.", "Brick by brick.", "Momentum building.", "Don't stop now."];
+        const msgs = ["Solid rep.", "Keep pushing.", "Momentum.", "Don't stop."];
         document.getElementById('status-msg').innerText = `+${amount} stacked. ${msgs[Math.floor(Math.random() * msgs.length)]}`;
-        document.getElementById('status-msg').style.color = "#aaaaaa";
     }
+    updateUI();
 }
 
 function transferOne() { processTransfer(1); }
-
 function transferBulk() {
     let amount = prompt("How many bricks are you moving?");
-    if (amount && !isNaN(amount) && amount > 0) {
-        processTransfer(parseInt(amount));
-    }
+    if (amount && !isNaN(amount) && amount > 0) processTransfer(parseInt(amount));
 }
 
-// Initial boot sequence
-window.onload = function() {
-    if (pending === 0 && completed === 0) {
-        document.getElementById('status-msg').innerText = "Click 'Set Target' to begin.";
-    } else {
-        updateUI();
-        if (pending === 0) {
-            document.getElementById('status-msg').innerText = "Target completed. Awaiting new orders.";
-            document.getElementById('status-msg').style.color = "#2ecc71";
-        }
-    }
-}
+window.onload = updateUI;
