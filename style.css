@@ -2,74 +2,92 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Courier New', Courier, monospace; /* Hacker aesthetic */
+    font-family: 'Courier New', Courier, monospace;
 }
 
 body {
-    background-color: #0d0d0d;
+    background-color: #080808;
     color: #e0e0e0;
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
-    user-select: none; /* Prevents accidental text highlighting while tapping on phone */
+    user-select: none;
 }
 
 .container {
-    text-align: center;
-    background: #1a1a1a;
+    background: #121212;
     padding: 30px;
     border-radius: 12px;
-    border: 1px solid #333;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+    border: 1px solid #222;
+    box-shadow: 0 15px 50px rgba(0,0,0,0.9);
     width: 90%;
     max-width: 400px;
 }
 
-h1 { margin-bottom: 5px; color: #f39c12; letter-spacing: 2px; text-transform: uppercase; }
-.status { color: #888; margin-bottom: 25px; font-size: 14px; min-height: 20px; font-style: italic; }
-
-.box-container {
+.header-stats {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 25px;
-    gap: 15px;
+    font-size: 12px;
+    color: #888;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
 }
+
+h1 { text-align: center; margin-bottom: 5px; color: #f39c12; letter-spacing: 2px; text-transform: uppercase; }
+.status { text-align: center; color: #888; margin-bottom: 20px; font-size: 13px; min-height: 20px; font-style: italic; }
+
+.progress-container {
+    width: 100%;
+    height: 6px;
+    background: #222;
+    border-radius: 3px;
+    margin-bottom: 25px;
+    overflow: hidden;
+}
+
+#progress-bar {
+    height: 100%;
+    width: 0%;
+    background: #2ecc71;
+    transition: width 0.4s ease, background 0.4s ease;
+    box-shadow: 0 0 10px #2ecc71;
+}
+
+.box-container { display: flex; justify-content: space-between; gap: 15px; margin-bottom: 25px; }
 
 .box {
     width: 50%;
     padding: 20px 10px;
     border-radius: 8px;
-    border: 2px solid;
-    background: #111;
-    transition: transform 0.1s ease, box-shadow 0.1s ease;
+    border: 1px solid #333;
+    background: #0f0f0f;
+    text-align: center;
 }
 
-.pending { border-color: #e74c3c; box-shadow: 0 0 10px rgba(231, 76, 60, 0.2); }
-.completed { border-color: #2ecc71; box-shadow: 0 0 10px rgba(46, 204, 113, 0.2); }
+.pending { border-bottom: 3px solid #e74c3c; }
+.completed { border-bottom: 3px solid #2ecc71; }
 
-.box h2 { font-size: 14px; margin-bottom: 10px; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+.box h2 { font-size: 13px; margin-bottom: 10px; color: #666; text-transform: uppercase; letter-spacing: 1px; }
 .box p { font-size: 42px; font-weight: bold; }
 
-.controls {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 10px;
-}
+.controls { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
 
 .btn {
-    padding: 12px 15px;
+    padding: 14px 15px;
     border: none;
     border-radius: 6px;
     font-weight: bold;
-    font-size: 14px;
+    font-size: 13px;
     cursor: pointer;
     transition: transform 0.1s, filter 0.1s;
     text-transform: uppercase;
+    width: 100%;
 }
 
-.btn:active { transform: scale(0.92); filter: brightness(0.8); }
-.btn-primary { background: #3498db; color: #111; flex-grow: 1; }
-.btn-secondary { background: #9b59b6; color: #111; flex-grow: 1; }
-.btn-danger { background: #222; color: #f39c12; border: 1px solid #f39c12; width: 100%; margin-top: 5px; }
+.btn:active { transform: scale(0.95); }
+.btn-primary { background: #3498db; color: #111; width: 48%; }
+.btn-secondary { background: #9b59b6; color: #111; width: 48%; }
+.btn-danger { background: #f39c12; color: #111; }
+.btn-overtime { background: #2ecc71; color: #111; }
