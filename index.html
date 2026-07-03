@@ -8,8 +8,17 @@
 </head>
 <body>
     <div class="container">
-        <h1>Stacker 🧱</h1>
-        <p id="status-msg" class="status">Ready to build.</p>
+        <div class="header-stats">
+            <span id="streak-display">🔥 Streak: 0</span>
+            <span id="lifetime-display">🧱 Lifetime: 0</span>
+        </div>
+        
+        <h1>Stacker</h1>
+        <p id="status-msg" class="status">System boot sequence complete.</p>
+
+        <div class="progress-container">
+            <div id="progress-bar"></div>
+        </div>
 
         <div class="box-container">
             <div class="box pending">
@@ -23,9 +32,10 @@
         </div>
 
         <div class="controls">
-            <button onclick="transferOne()" class="btn btn-primary">+1 Brick</button>
-            <button onclick="transferBulk()" class="btn btn-secondary">+N Bricks</button>
-            <button onclick="setTarget()" class="btn btn-danger">Set Target</button>
+            <button id="btn-one" onclick="transferOne()" class="btn btn-primary">+1 Brick</button>
+            <button id="btn-bulk" onclick="transferBulk()" class="btn btn-secondary">+N Bricks</button>
+            <button id="btn-set" onclick="setTarget()" class="btn btn-danger">Set Daily Target</button>
+            <button id="btn-more" onclick="addMoreTarget()" class="btn btn-overtime" style="display:none;">Add Overtime Bricks</button>
         </div>
     </div>
 
