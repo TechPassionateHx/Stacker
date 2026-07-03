@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stacker</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Stacker 🧱</h1>
+        <p id="status-msg" class="status">Ready to build.</p>
+
+        <div class="box-container">
+            <div class="box pending">
+                <h2>Pending</h2>
+                <p id="pending-count">0</p>
+            </div>
+            <div class="box completed">
+                <h2>Completed</h2>
+                <p id="completed-count">0</p>
+            </div>
+        </div>
+
+        <div class="controls">
+            <button onclick="transferOne()" class="btn btn-primary">+1 Brick</button>
+            <button onclick="transferBulk()" class="btn btn-secondary">+N Bricks</button>
+            <button onclick="setTarget()" class="btn btn-danger">Set Target</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script src="script.js"></script>
+</body>
+</html>
