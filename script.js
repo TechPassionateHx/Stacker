@@ -9,25 +9,35 @@ let dailyTotal = parseInt(localStorage.getItem('stackerDailyTotal')) || 0;
 const today = new Date().toDateString();
 
 // Hardware Audio Engine
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+let audioCtx;
 
 function playThwompSound() {
-    if (audioCtx.state === 'suspended') audioCtx.resume();
-    const oscillator = audioCtx.createOscillator();
-    const gainNode = audioCtx.createGain();
-    
-    oscillator.type = 'sine';
-    oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
-    oscillator.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
-    
-    gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
-    
-    oscillator.connect(gainNode);
-    gainNode.connect(audioCtx.destination);
-    
-    oscillator.start();
-    oscillator.stop(audioCtx.currentTime + 0.1);
+    try {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+        
+        const oscillator = audioCtx.createOscillator();
+        const gainNode = audioCtx.createGain();
+        
+        oscillator.type = 'sine';
+        oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
+        oscillator.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
+        
+        gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
+        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+        
+        oscillator.connect(gainNode);
+        gainNode.connect(audioCtx.destination);
+        
+        oscillator.start();
+        oscillator.stop(audioCtx.currentTime + 0.1);
+    } catch (e) {
+        console.log("Audio failed to initialize:", e);
+    }
 }
 
 // Modal Toggle Logic
@@ -134,7 +144,9 @@ function processTransfer(amount) {
         document.getElementById('status-msg').innerText = `TARGET DESTROYED! ${task}`;
         document.getElementById('status-msg').style.color = "#2ecc71";
         
-        confetti({ particleCount: 250, spread: 120, origin: { y: 0.6 }, colors: ['#f39c12', '#2ecc71', '#e74c3c'] });
+        if (typeof confetti === 'function') {
+            confetti({ particleCount: 250, spread: 120, origin: { y: 0.6 }, colors: ['#f39c12', '#2ecc71', '#e74c3c'] });
+        }
     } else {
         const msgs = ["Solid rep.", "Keep pushing.", "Momentum.", "Don't stop.", "Brick by brick."];
         document.getElementById('status-msg').innerText = `+${amount} stacked. ${msgs[Math.floor(Math.random() * msgs.length)]}`;
@@ -151,9 +163,13 @@ function transferBulk() {
 
 window.onload = function() {
     document.body.addEventListener('click', () => {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
         if (audioCtx.state === 'suspended') audioCtx.resume();
     }, { once: true });
     updateUI();
 };
+
 
 
