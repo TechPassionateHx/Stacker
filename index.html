@@ -8,7 +8,8 @@
 </head>
 <body>
     <div class="container">
-        <button class="info-trigger" onclick="toggleModal()">ℹ️</button>
+        <button class="info-trigger" onclick="toggleModal('rules-modal')">ℹ️</button>
+        <button class="analytics-trigger" onclick="toggleModal('analytics-modal'); calculateAnalytics();">📊</button>
 
         <div class="header-stats">
             <span id="streak-display">🔥 Streak: 0</span>
@@ -55,7 +56,34 @@
             <hr>
             <h4>YOUR DATA IS SAFE</h4>
             <p class="data-text">Everything you do on Stacker stays entirely on your own phone. Your targets, streaks, and lifetime scores are saved directly in your browser's memory. No accounts, no logins, and zero data leaves this device. It is 100% private to you.</p>
-            <button class="btn-close" onclick="toggleModal()">RETURN TO TERMINAL</button>
+            <button class="btn-clear-data" onclick="hardResetSystem()">FACTORY RESET DATA</button>
+            <button class="btn-close" onclick="toggleModal('rules-modal')">RETURN TO TERMINAL</button>
+        </div>
+    </div>
+
+    <div id="analytics-modal" class="modal">
+        <div class="modal-content">
+            <h3>ANALYTICS CORE</h3>
+            <hr>
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <h5>DAILY AVERAGE</h5>
+                    <p id="stat-avg" class="neon-blue">0.0</p>
+                </div>
+                <div class="metric-card">
+                    <h5>PEAK DAY RECORD</h5>
+                    <p id="stat-peak" class="neon-green">0</p>
+                </div>
+                <div class="metric-card">
+                    <h5>EFFICIENCY VALUE</h5>
+                    <p id="stat-eff" class="neon-purple">0%</p>
+                </div>
+            </div>
+            <hr>
+            <h4>HISTORICAL OPERATION FEED</h4>
+            <div id="analytics-history-log" class="history-log-box">
+                </div>
+            <button class="btn-close" onclick="toggleModal('analytics-modal')">CLOSE DIAGNOSTICS</button>
         </div>
     </div>
 
