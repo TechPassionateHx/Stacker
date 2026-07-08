@@ -16,7 +16,7 @@ body {
 }
 
 .container {
-    position: relative; /* Context for floating trigger button */
+    position: relative;
     background: #121212;
     padding: 30px;
     border-radius: 20px;
@@ -25,11 +25,10 @@ body {
     max-width: 400px;
 }
 
-/* Floating Info Button Styles */
-.info-trigger {
+/* Floating Configuration Buttons */
+.info-trigger, .analytics-trigger {
     position: absolute;
     top: 15px;
-    right: 15px;
     background: transparent;
     border: none;
     color: #666;
@@ -37,7 +36,10 @@ body {
     cursor: pointer;
     transition: color 0.2s;
 }
+.info-trigger { right: 15px; }
+.analytics-trigger { right: 45px; }
 .info-trigger:hover { color: #f39c12; }
+.analytics-trigger:hover { color: #3498db; }
 
 .header-stats {
     display: flex;
@@ -47,7 +49,7 @@ body {
     margin-bottom: 20px;
     text-transform: uppercase;
     font-weight: bold;
-    width: 80%; /* Don't overlap with info trigger */
+    width: 70%;
 }
 
 h1 { text-align: center; margin-bottom: 5px; color: #f39c12; letter-spacing: 3px; text-shadow: 0 0 10px rgba(243, 156, 18, 0.3); }
@@ -114,13 +116,13 @@ h1 { text-align: center; margin-bottom: 5px; color: #f39c12; letter-spacing: 3px
 .btn-danger { background: #f39c12; color: #111; }
 .btn-overtime { background: #2ecc71; color: #111; }
 
-/* Modal Overlay Base Layout */
+/* Modal Architecture Overlay */
 .modal {
-    display: none; /* Controlled hidden/visible via JS */
+    display: none;
     position: fixed;
     top: 0; left: 0; width: 100%; height: 100%;
     background: rgba(0, 0, 0, 0.7);
-    backdrop-filter: blur(8px); /* Modern sleek blurred glass look */
+    backdrop-filter: blur(8px);
     justify-content: center;
     align-items: center;
     z-index: 1000;
@@ -137,18 +139,44 @@ h1 { text-align: center; margin-bottom: 5px; color: #f39c12; letter-spacing: 3px
 }
 
 .modal-content h3 { color: #f39c12; font-size: 16px; margin-bottom: 12px; letter-spacing: 1px; text-align: center;}
-.modal-content h4 { color: #aaa; font-size: 12px; margin: 12px 0 6px 0; letter-spacing: 1px; text-transform: uppercase;}
+.modal-content h4 { color: #aaa; font-size: 11px; margin: 12px 0 6px 0; letter-spacing: 1px; text-transform: uppercase;}
 .modal-content hr { border: 0; height: 1px; background: #222; margin: 10px 0; }
-
 .modal-content ul { list-style: none; padding-left: 5px; }
 .modal-content li { font-size: 13px; margin-bottom: 6px; color: #ccc;}
 .modal-content li strong { color: #3498db; }
-
 .custom-note { font-size: 11px; color: #555; line-height: 1.3; }
 .data-text { font-size: 12px; color: #888; line-height: 1.4; text-align: justify; }
 
+/* Data Dashboard Styling */
+.metrics-grid { display: flex; justify-content: space-between; gap: 10px; margin: 15px 0; }
+.metric-card { background: #0c0c0c; border: 1px solid #222; border-radius: 8px; width: 33%; padding: 10px 5px; text-align: center; box-shadow: inset 2px 2px 5px rgba(0,0,0,0.8); }
+.metric-card h5 { font-size: 9px; color: #555; margin-bottom: 5px; letter-spacing: 0.5px; }
+.metric-card p { font-size: 18px; font-weight: bold; }
+
+/* Glowing Analytics Text indicators */
+.neon-blue { color: #3498db; text-shadow: 0 0 5px rgba(52, 152, 219, 0.4); }
+.neon-green { color: #2ecc71; text-shadow: 0 0 5px rgba(46, 204, 113, 0.4); }
+.neon-purple { color: #9b59b6; text-shadow: 0 0 5px rgba(155, 89, 182, 0.4); }
+
+.history-log-box { max-height: 100px; overflow-y: auto; background: #090909; border: 1px solid #222; padding: 10px; border-radius: 6px; font-size: 11px; color: #666; line-height: 1.5; }
+
+.btn-clear-data {
+    margin-top: 10px;
+    width: 100%;
+    padding: 10px;
+    background: transparent;
+    color: #444;
+    border: 1px dashed #222;
+    border-radius: 6px;
+    font-weight: bold;
+    font-size: 11px;
+    cursor: pointer;
+    text-transform: uppercase;
+}
+.btn-clear-data:active { background: #e74c3c; color: #111; border-style: solid; }
+
 .btn-close {
-    margin-top: 20px;
+    margin-top: 15px;
     width: 100%;
     padding: 12px;
     background: #222;
@@ -160,3 +188,4 @@ h1 { text-align: center; margin-bottom: 5px; color: #f39c12; letter-spacing: 3px
     text-transform: uppercase;
 }
 .btn-close:active { transform: scale(0.98); }
+
