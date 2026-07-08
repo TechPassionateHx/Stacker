@@ -122,19 +122,25 @@ function updateUI() {
     saveData();
 }
 
-// Analytics Processing Logic Engine
+// Analytics Processing Logic Engine (FIXED)
 function calculateAnalytics() {
     let virtualHistory = [...historyLog];
+    
+    // Include current live active day tracking into analytics display
     if (dailyTotal > 0 || completed > 0) {
         virtualHistory.push({ date: today, completed: completed, target: dailyTotal });
     }
 
-    if (virtualHistory.length === 0) {
+    // Target table body elements
+    const summaryBox = document.getElementById('analytics-history-log');
+    const tableBody = document.getElementById('ledger-table-body');
+
+    if (virtualHistory.length === 0 || (virtualHistory.length === 1 && virtualHistory[0].target === 0)) {
         document.getElementById('stat-avg').innerText = "0.0";
         document.getElementById('stat-peak').innerText = "0";
         document.getElementById('stat-eff').innerText = "0%";
-        document.getElementById('analytics-history-log').innerText = "No operations executed in timeline.";
-        document.getElementById('ledger-table-body').innerHTML = "<tr><td colspan='4' style='text-align:center;'>No Data Logged</td></tr>";
+        summaryBox.innerText = "No operations executed in timeline.";
+        tableBody.innerHTML = "<tr><td colspan='4' style='text-align:center; color:#555;'>NO HISTORY LOGGED YET</td></tr>";
         return;
     }
 
@@ -152,10 +158,10 @@ function calculateAnalytics() {
         if (isSuccess) successfulDays++;
         
         // Short Format Summary
-        summaryHTML += `<div>• ${entry.date}: ${entry.completed}/${entry.target} Bricks</div>`;
+        summaryHTML += `<div>• ${entry.date.substring(4, 10)}: ${entry.completed}/${entry.target} Bricks</div>`;
         
         // Full Details Tabular Ledger Format
-        let shortDate = entry.date.substring(4, 10); // Cuts "Thu Jul 09 2026" down to "Jul 09" for neat screens
+        let shortDate = entry.date.substring(4, 10); 
         let percentage = entry.target > 0 ? Math.round((entry.completed / entry.target) * 100) : 0;
         let accClass = isSuccess ? "ledger-success" : "ledger-miss";
         
@@ -173,9 +179,10 @@ function calculateAnalytics() {
     document.getElementById('stat-avg').innerText = avgValue;
     document.getElementById('stat-peak').innerText = highestPeak;
     document.getElementById('stat-eff').innerText = `${efficiencyRate}%`;
-    document.getElementById('analytics-history-log').innerHTML = summaryHTML;
-    document.getElementById('ledger-table-body').innerHTML = ledgerHTML;
+    summaryBox.innerHTML = summaryHTML;
+    tableBody.innerHTML = ledgerHTML;
 }
+
 
 function setTarget() {
     let target = prompt("Set today's target (Number of bricks):");
