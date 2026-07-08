@@ -62,7 +62,7 @@
     </div>
 
     <div id="analytics-modal" class="modal">
-        <div class="modal-content">
+        <div class="modal-content analytics-box-sizing">
             <h3>ANALYTICS CORE</h3>
             <hr>
             <div class="metrics-grid">
@@ -80,10 +80,33 @@
                 </div>
             </div>
             <hr>
-            <h4>HISTORICAL OPERATION FEED</h4>
-            <div id="analytics-history-log" class="history-log-box">
+            
+            <div id="analytics-summary-view">
+                <h4>HISTORICAL OPERATION FEED</h4>
+                <div id="analytics-history-log" class="history-log-box"></div>
+                <button class="btn-ledger-toggle" onclick="toggleLedgerView(true)">[VIEW DETAILED LEDGER]</button>
+            </div>
+
+            <div id="analytics-ledger-view" style="display: none;">
+                <h4>FULL SYSTEM CHRONICLE DATA</h4>
+                <div class="ledger-wrapper">
+                    <table class="ledger-table">
+                        <thead>
+                            <tr>
+                                <th>DATE TIMELINE</th>
+                                <th>TARGET</th>
+                                <th>COMPLETED</th>
+                                <th>ACC</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ledger-table-body">
+                            </tbody>
+                    </table>
                 </div>
-            <button class="btn-close" onclick="toggleModal('analytics-modal')">CLOSE DIAGNOSTICS</button>
+                <button class="btn-ledger-toggle" onclick="toggleLedgerView(false)">[RETURN TO SUMMARY]</button>
+            </div>
+
+            <button class="btn-close" onclick="toggleModal('analytics-modal'); toggleLedgerView(false);">CLOSE DIAGNOSTICS</button>
         </div>
     </div>
 
@@ -91,6 +114,7 @@
     <script src="script.js"></script>
 </body>
 </html>
+
 
 
  
