@@ -50,14 +50,27 @@ function toggleModal(id) {
     }
 }
 
+// Ledger Display View State Switcher
+function toggleLedgerView(showLedger) {
+    const summaryDiv = document.getElementById('analytics-summary-view');
+    const ledgerDiv = document.getElementById('analytics-ledger-view');
+    playThwompSound();
+    if (showLedger) {
+        summaryDiv.style.display = "none";
+        ledgerDiv.style.display = "block";
+    } else {
+        summaryDiv.style.display = "block";
+        ledgerDiv.style.display = "none";
+    }
+}
+
 // Active Processing Day Transition
 if (lastDate !== today) {
     if (lastDate && dailyTotal > 0) {
-        // Push finished tracking data to analytics archive database
         historyLog.push({ date: lastDate, completed: completed, target: dailyTotal });
         localStorage.setItem('stackerHistory', JSON.stringify(historyLog));
     }
-    if (lastDate && pending > 0) streak = 0; // Lock structural breaking streak logic
+    if (lastDate && pending > 0) streak = 0; 
     
     pending = 0;
     completed = 0;
@@ -111,7 +124,6 @@ function updateUI() {
 
 // Analytics Processing Logic Engine
 function calculateAnalytics() {
-    // Inject mock live calculation if array history database is empty on start day
     let virtualHistory = [...historyLog];
     if (dailyTotal > 0 || completed > 0) {
         virtualHistory.push({ date: today, completed: completed, target: dailyTotal });
@@ -121,21 +133,38 @@ function calculateAnalytics() {
         document.getElementById('stat-avg').innerText = "0.0";
         document.getElementById('stat-peak').innerText = "0";
         document.getElementById('stat-eff').innerText = "0%";
-        document.getElementById('analytics-history-log').innerText = "No operations executed in current timeline log.";
+        document.getElementById('analytics-history-log').innerText = "No operations executed in timeline.";
+        document.getElementById('ledger-table-body').innerHTML = "<tr><td colspan='4' style='text-align:center;'>No Data Logged</td></tr>";
         return;
     }
 
     let totalCompleted = 0;
     let highestPeak = 0;
     let successfulDays = 0;
-    let outputHTML = "";
+    let summaryHTML = "";
+    let ledgerHTML = "";
 
     virtualHistory.forEach(entry => {
         totalCompleted += entry.completed;
         if (entry.completed > highestPeak) highestPeak = entry.completed;
-        if (entry.completed >= entry.target && entry.target > 0) successfulDays++;
         
-        outputHTML += `<div>• ${entry.date}: ${entry.completed}/${entry.target} Bricks</div>`;
+        let isSuccess = entry.completed >= entry.target && entry.target > 0;
+        if (isSuccess) successfulDays++;
+        
+        // Short Format Summary
+        summaryHTML += `<div>• ${entry.date}: ${entry.completed}/${entry.target} Bricks</div>`;
+        
+        // Full Details Tabular Ledger Format
+        let shortDate = entry.date.substring(4, 10); // Cuts "Thu Jul 09 2026" down to "Jul 09" for neat screens
+        let percentage = entry.target > 0 ? Math.round((entry.completed / entry.target) * 100) : 0;
+        let accClass = isSuccess ? "ledger-success" : "ledger-miss";
+        
+        ledgerHTML += `<tr>
+            <td>${shortDate}</td>
+            <td>${entry.target}</td>
+            <td>${entry.completed}</td>
+            <td class="${accClass}">${percentage}%</td>
+        </tr>`;
     });
 
     let avgValue = (totalCompleted / virtualHistory.length).toFixed(1);
@@ -144,7 +173,8 @@ function calculateAnalytics() {
     document.getElementById('stat-avg').innerText = avgValue;
     document.getElementById('stat-peak').innerText = highestPeak;
     document.getElementById('stat-eff').innerText = `${efficiencyRate}%`;
-    document.getElementById('analytics-history-log').innerHTML = outputHTML;
+    document.getElementById('analytics-history-log').innerHTML = summaryHTML;
+    document.getElementById('ledger-table-body').innerHTML = ledgerHTML;
 }
 
 function setTarget() {
@@ -220,6 +250,7 @@ window.onload = function() {
     }, { once: true });
     updateUI();
 };
+
 
 
 
