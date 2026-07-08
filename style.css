@@ -134,7 +134,7 @@ h1 { text-align: center; margin-bottom: 5px; color: #f39c12; letter-spacing: 3px
     border-radius: 15px;
     border: 1px solid #333;
     width: 85%;
-    max-width: 360px;
+    max-width: 380px;
     box-shadow: 0 20px 50px rgba(0,0,0,1);
 }
 
@@ -159,6 +159,29 @@ h1 { text-align: center; margin-bottom: 5px; color: #f39c12; letter-spacing: 3px
 .neon-purple { color: #9b59b6; text-shadow: 0 0 5px rgba(155, 89, 182, 0.4); }
 
 .history-log-box { max-height: 100px; overflow-y: auto; background: #090909; border: 1px solid #222; padding: 10px; border-radius: 6px; font-size: 11px; color: #666; line-height: 1.5; }
+
+/* Deep Ledger Option Elements */
+.btn-ledger-toggle {
+    display: block;
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: #3498db;
+    font-size: 11px;
+    font-weight: bold;
+    cursor: pointer;
+    text-align: center;
+    margin-top: 12px;
+    letter-spacing: 1px;
+}
+.btn-ledger-toggle:active { color: #2ecc71; }
+
+.ledger-wrapper { max-height: 140px; overflow-y: auto; border: 1px solid #222; border-radius: 6px; background: #080808; }
+.ledger-table { width: 100%; border-collapse: collapse; text-align: left; font-size: 10px; }
+.ledger-table th { background: #111; color: #555; padding: 8px; font-weight: bold; border-bottom: 1px solid #222; }
+.ledger-table td { padding: 8px; color: #aaa; border-bottom: 1px solid #151515; }
+.ledger-success { color: #2ecc71 !important; font-weight: bold; }
+.ledger-miss { color: #e74c3c !important; }
 
 .btn-clear-data {
     margin-top: 10px;
