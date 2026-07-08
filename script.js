@@ -1,10 +1,11 @@
-// Load Data
+// Load Data Elements
 let pending = parseInt(localStorage.getItem('stackerPending')) || 0;
 let completed = parseInt(localStorage.getItem('stackerCompleted')) || 0;
 let lifetime = parseInt(localStorage.getItem('stackerLifetime')) || 0;
 let streak = parseInt(localStorage.getItem('stackerStreak')) || 0;
 let lastDate = localStorage.getItem('stackerDate');
 let dailyTotal = parseInt(localStorage.getItem('stackerDailyTotal')) || 0;
+let historyLog = JSON.parse(localStorage.getItem('stackerHistory')) || [];
 
 const today = new Date().toDateString();
 
@@ -16,9 +17,7 @@ function playThwompSound() {
         if (!audioCtx) {
             audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         }
-        if (audioCtx.state === 'suspended') {
-            audioCtx.resume();
-        }
+        if (audioCtx.state === 'suspended') audioCtx.resume();
         
         const oscillator = audioCtx.createOscillator();
         const gainNode = audioCtx.createGain();
@@ -36,13 +35,13 @@ function playThwompSound() {
         oscillator.start();
         oscillator.stop(audioCtx.currentTime + 0.1);
     } catch (e) {
-        console.log("Audio failed to initialize:", e);
+        console.log("Audio pipeline bypass:", e);
     }
 }
 
-// Modal Toggle Logic
-function toggleModal() {
-    const modal = document.getElementById('rules-modal');
+// Modal Toggle Mechanics
+function toggleModal(id) {
+    const modal = document.getElementById(id);
     if (modal.style.display === "flex") {
         modal.style.display = "none";
     } else {
@@ -51,9 +50,15 @@ function toggleModal() {
     }
 }
 
-// New Day Check Logic
+// Active Processing Day Transition
 if (lastDate !== today) {
-    if (lastDate && pending > 0) streak = 0; 
+    if (lastDate && dailyTotal > 0) {
+        // Push finished tracking data to analytics archive database
+        historyLog.push({ date: lastDate, completed: completed, target: dailyTotal });
+        localStorage.setItem('stackerHistory', JSON.stringify(historyLog));
+    }
+    if (lastDate && pending > 0) streak = 0; // Lock structural breaking streak logic
+    
     pending = 0;
     completed = 0;
     dailyTotal = 0;
@@ -102,6 +107,44 @@ function updateUI() {
         btnMore.style.display = "block";
     }
     saveData();
+}
+
+// Analytics Processing Logic Engine
+function calculateAnalytics() {
+    // Inject mock live calculation if array history database is empty on start day
+    let virtualHistory = [...historyLog];
+    if (dailyTotal > 0 || completed > 0) {
+        virtualHistory.push({ date: today, completed: completed, target: dailyTotal });
+    }
+
+    if (virtualHistory.length === 0) {
+        document.getElementById('stat-avg').innerText = "0.0";
+        document.getElementById('stat-peak').innerText = "0";
+        document.getElementById('stat-eff').innerText = "0%";
+        document.getElementById('analytics-history-log').innerText = "No operations executed in current timeline log.";
+        return;
+    }
+
+    let totalCompleted = 0;
+    let highestPeak = 0;
+    let successfulDays = 0;
+    let outputHTML = "";
+
+    virtualHistory.forEach(entry => {
+        totalCompleted += entry.completed;
+        if (entry.completed > highestPeak) highestPeak = entry.completed;
+        if (entry.completed >= entry.target && entry.target > 0) successfulDays++;
+        
+        outputHTML += `<div>• ${entry.date}: ${entry.completed}/${entry.target} Bricks</div>`;
+    });
+
+    let avgValue = (totalCompleted / virtualHistory.length).toFixed(1);
+    let efficiencyRate = Math.round((successfulDays / virtualHistory.length) * 100);
+
+    document.getElementById('stat-avg').innerText = avgValue;
+    document.getElementById('stat-peak').innerText = highestPeak;
+    document.getElementById('stat-eff').innerText = `${efficiencyRate}%`;
+    document.getElementById('analytics-history-log').innerHTML = outputHTML;
 }
 
 function setTarget() {
@@ -161,6 +204,13 @@ function transferBulk() {
     if (amount && !isNaN(amount) && amount > 0) processTransfer(parseInt(amount));
 }
 
+function hardResetSystem() {
+    if (confirm("WARNING: Permanent wipe authorized. This removes all streaks, memory arrays, and history logs. Proceed?")) {
+        localStorage.clear();
+        location.reload();
+    }
+}
+
 window.onload = function() {
     document.body.addEventListener('click', () => {
         if (!audioCtx) {
@@ -170,6 +220,7 @@ window.onload = function() {
     }, { once: true });
     updateUI();
 };
+
 
 
 
