@@ -218,7 +218,7 @@ function processTransfer(amount) {
 
     if (pending === 0) {
         streak += 1; 
-        const tasks = ["Drop and give me 15 pushups!", "20 squats right now!", "Hold a 60-second plank!"];
+        const tasks = ["Drop and give me 5 pushups!", "10 squats right now!", "Hold a 15-second plank!"];
         const task = tasks[Math.floor(Math.random() * tasks.length)];
         
         document.getElementById('status-msg').innerText = `TARGET DESTROYED! ${task}`;
