@@ -3,11 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Stacker</title>
+    <title>Stacker V2</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
     <div class="container">
+        <!-- Grace Period Banner -->
+        <div id="grace-banner" class="grace-banner" style="display: none;">
+            <span>⚠️ Unlogged work from Yesterday?</span>
+            <div class="grace-actions">
+                <button onclick="resolveGrace('backfill')">Log</button>
+                <button onclick="resolveGrace('rest')">Rest</button>
+                <button onclick="resolveGrace('dismiss')">Dismiss</button>
+            </div>
+        </div>
+
         <button class="info-trigger" onclick="toggleModal('rules-modal')">ℹ️</button>
         <button class="analytics-trigger" onclick="toggleModal('analytics-modal'); calculateAnalytics();">📊</button>
 
@@ -17,12 +27,14 @@
         </div>
         
         <h1>Stacker</h1>
-        <p id="status-msg" class="status">Hardware initialized.</p>
+        <p id="status-msg" class="status">Initializing core systems...</p>
 
+        <!-- Progress Trackers -->
         <div class="progress-container">
             <div id="progress-bar"></div>
         </div>
 
+        <!-- Metric Displays -->
         <div class="box-container">
             <div class="box pending">
                 <h2>Pending</h2>
@@ -34,14 +46,29 @@
             </div>
         </div>
 
+        <!-- Smart Target Selection Row -->
+        <div id="target-selector-row" class="target-presets" style="display: none;">
+            <button class="btn-preset light" onclick="applyPreset('light')">Light (<span id="preset-val-light">0</span>)</button>
+            <button class="btn-preset standard" onclick="applyPreset('std')">Std (<span id="preset-val-std">0</span>)</button>
+            <button class="btn-preset push" onclick="applyPreset('push')">Push (<span id="preset-val-push">0</span>)</button>
+        </div>
+
+        <!-- Tactile Control Center -->
         <div class="controls">
-            <button id="btn-one" onclick="transferOne()" class="btn btn-primary">+1 Brick</button>
-            <button id="btn-bulk" onclick="transferBulk()" class="btn btn-secondary">+N Bricks</button>
-            <button id="btn-set" onclick="setTarget()" class="btn btn-danger">Set Daily Target</button>
-            <button id="btn-more" onclick="addMoreTarget()" class="btn btn-overtime" style="display:none;">Add Overtime</button>
+            <div class="quick-add-grid">
+                <button class="btn btn-tap" onclick="transferBricks(1)">+1</button>
+                <button class="btn btn-tap" onclick="transferBricks(5)">+5</button>
+                <button class="btn btn-tap" onclick="transferBricks(10)">+10</button>
+                <button class="btn btn-tap" onclick="transferBricks(25)">+25</button>
+            </div>
+
+            <button id="btn-undo" onclick="undoLastAction()" class="btn btn-undo" style="display: none;">↩ Undo (+<span id="undo-count">0</span>)</button>
+            <button id="btn-set" onclick="toggleTargetSelector()" class="btn btn-danger">Set Daily Target</button>
+            <button id="btn-more" onclick="addMoreTarget()" class="btn btn-overtime" style="display: none;">+ Add Overtime</button>
         </div>
     </div>
 
+    <!-- Rules & Data Modal -->
     <div id="rules-modal" class="modal">
         <div class="modal-content">
             <h3>SYSTEM PROTOCOLS</h3>
@@ -49,33 +76,40 @@
             <h4>THE SCORING ENGINE</h4>
             <ul>
                 <li><strong>1 Question Solved</strong> = +1 Brick</li>
-                <li><strong>15 Mins Active Theory/Lecture</strong> = +1 Brick</li>
-                <li><strong>10 Mins High-Focus Revision/Notes</strong> = +1 Brick</li>
+                <li><strong>15 Mins Active Theory</strong> = +1 Brick</li>
+                <li><strong>10 Mins Revision</strong> = +1 Brick</li>
             </ul>
-            <p class="custom-note"><em>*Note: You are free to recalibrate these values to match your custom execution pace.</em></p>
             <hr>
-            <h4>YOUR DATA IS SAFE</h4>
-            <p class="data-text">Everything you do on Stacker stays entirely on your own phone. Your targets, streaks, and lifetime scores are saved directly in your browser's memory. No accounts, no logins, and zero data leaves this device. It is 100% private to you.</p>
+            <h4>BACKUP & RESILIENCE</h4>
+            <p class="data-text">Storage is backed by persistent memory. Export backups periodically to prevent data loss across device updates.</p>
+            
+            <div class="storage-actions">
+                <button class="btn-storage" onclick="exportDataBackup()">EXPORT BACKUP (.JSON)</button>
+                <button class="btn-storage" onclick="document.getElementById('import-file').click()">RESTORE BACKUP</button>
+                <input type="file" id="import-file" style="display: none;" onchange="importDataBackup(event)" accept=".json">
+            </div>
+
             <button class="btn-clear-data" onclick="hardResetSystem()">FACTORY RESET DATA</button>
             <button class="btn-close" onclick="toggleModal('rules-modal')">RETURN TO TERMINAL</button>
         </div>
     </div>
 
+    <!-- Analytics Dashboard Modal -->
     <div id="analytics-modal" class="modal">
         <div class="modal-content analytics-box-sizing">
             <h3>ANALYTICS CORE</h3>
             <hr>
             <div class="metrics-grid">
                 <div class="metric-card">
-                    <h5>DAILY AVERAGE</h5>
-                    <p id="stat-avg" class="neon-blue">0.0</p>
+                    <h5>7D MEDIAN</h5>
+                    <p id="stat-median" class="neon-blue">0</p>
                 </div>
                 <div class="metric-card">
-                    <h5>PEAK DAY RECORD</h5>
+                    <h5>PEAK DAY</h5>
                     <p id="stat-peak" class="neon-green">0</p>
                 </div>
                 <div class="metric-card">
-                    <h5>EFFICIENCY VALUE</h5>
+                    <h5>EFFICIENCY</h5>
                     <p id="stat-eff" class="neon-purple">0%</p>
                 </div>
             </div>
@@ -88,19 +122,18 @@
             </div>
 
             <div id="analytics-ledger-view" style="display: none;">
-                <h4>FULL SYSTEM CHRONICLE DATA</h4>
+                <h4>FULL SYSTEM CHRONICLE</h4>
                 <div class="ledger-wrapper">
                     <table class="ledger-table">
                         <thead>
                             <tr>
-                                <th>DATE TIMELINE</th>
+                                <th>DATE</th>
                                 <th>TARGET</th>
-                                <th>COMPLETED</th>
-                                <th>ACC</th>
+                                <th>DONE</th>
+                                <th>STATUS</th>
                             </tr>
                         </thead>
-                        <tbody id="ledger-table-body">
-                            </tbody>
+                        <tbody id="ledger-table-body"></tbody>
                     </table>
                 </div>
                 <button class="btn-ledger-toggle" onclick="toggleLedgerView(false)">[RETURN TO SUMMARY]</button>
@@ -114,6 +147,7 @@
     <script src="script.js"></script>
 </body>
 </html>
+
 
 
 
