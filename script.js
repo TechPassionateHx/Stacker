@@ -1,263 +1,403 @@
-// Load Data Elements
-let pending = parseInt(localStorage.getItem('stackerPending')) || 0;
-let completed = parseInt(localStorage.getItem('stackerCompleted')) || 0;
-let lifetime = parseInt(localStorage.getItem('stackerLifetime')) || 0;
-let streak = parseInt(localStorage.getItem('stackerStreak')) || 0;
-let lastDate = localStorage.getItem('stackerDate');
-let dailyTotal = parseInt(localStorage.getItem('stackerDailyTotal')) || 0;
-let historyLog = JSON.parse(localStorage.getItem('stackerHistory')) || [];
+// --- Storage Driver (IndexedDB + Storage Persistence) ---
+const DB_NAME = 'StackerV2DB';
+const DB_VERSION = 1;
+const STORE_NAME = 'app_state';
+let dbInstance = null;
 
-const today = new Date().toDateString();
-
-// Hardware Audio Engine
-let audioCtx;
-
-function playThwompSound() {
-    try {
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-        
-        const oscillator = audioCtx.createOscillator();
-        const gainNode = audioCtx.createGain();
-        
-        oscillator.type = 'sine';
-        oscillator.frequency.setValueAtTime(600, audioCtx.currentTime);
-        oscillator.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
-        
-        gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
-        gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
-        
-        oscillator.connect(gainNode);
-        gainNode.connect(audioCtx.destination);
-        
-        oscillator.start();
-        oscillator.stop(audioCtx.currentTime + 0.1);
-    } catch (e) {
-        console.log("Audio pipeline bypass:", e);
+async function initDB() {
+    if (navigator.storage && navigator.storage.persist) {
+        navigator.storage.persist();
     }
-}
-
-// Modal Toggle Mechanics
-function toggleModal(id) {
-    const modal = document.getElementById(id);
-    if (modal.style.display === "flex") {
-        modal.style.display = "none";
-    } else {
-        modal.style.display = "flex";
-        playThwompSound();
-    }
-}
-
-// Ledger Display View State Switcher
-function toggleLedgerView(showLedger) {
-    const summaryDiv = document.getElementById('analytics-summary-view');
-    const ledgerDiv = document.getElementById('analytics-ledger-view');
-    playThwompSound();
-    if (showLedger) {
-        summaryDiv.style.display = "none";
-        ledgerDiv.style.display = "block";
-    } else {
-        summaryDiv.style.display = "block";
-        ledgerDiv.style.display = "none";
-    }
-}
-
-// Active Processing Day Transition
-if (lastDate !== today) {
-    if (lastDate && dailyTotal > 0) {
-        historyLog.push({ date: lastDate, completed: completed, target: dailyTotal });
-        localStorage.setItem('stackerHistory', JSON.stringify(historyLog));
-    }
-    if (lastDate && pending > 0) streak = 0; 
-    
-    pending = 0;
-    completed = 0;
-    dailyTotal = 0;
-    localStorage.setItem('stackerDate', today);
-    saveData();
-}
-
-function saveData() {
-    localStorage.setItem('stackerPending', pending);
-    localStorage.setItem('stackerCompleted', completed);
-    localStorage.setItem('stackerLifetime', lifetime);
-    localStorage.setItem('stackerStreak', streak);
-    localStorage.setItem('stackerDailyTotal', dailyTotal);
-}
-
-function updateUI() {
-    document.getElementById('pending-count').innerText = pending;
-    document.getElementById('completed-count').innerText = completed;
-    document.getElementById('lifetime-display').innerText = `🧱 Lifetime: ${lifetime}`;
-    document.getElementById('streak-display').innerText = `🔥 Streak: ${streak}`;
-
-    let progress = 0;
-    if (dailyTotal > 0) progress = (completed / dailyTotal) * 100;
-    progress = Math.min(progress, 100);
-    document.getElementById('progress-bar').style.width = `${progress}%`;
-
-    const btnSet = document.getElementById('btn-set');
-    const btnOne = document.getElementById('btn-one');
-    const btnBulk = document.getElementById('btn-bulk');
-    const btnMore = document.getElementById('btn-more');
-
-    if (pending === 0 && completed === 0) {
-        btnSet.style.display = "block";
-        btnOne.style.display = "none";
-        btnBulk.style.display = "none";
-        btnMore.style.display = "none";
-    } else if (pending > 0) {
-        btnSet.style.display = "none";
-        btnOne.style.display = "block";
-        btnBulk.style.display = "block";
-        btnMore.style.display = "none";
-    } else if (pending === 0 && completed > 0) {
-        btnSet.style.display = "none";
-        btnOne.style.display = "none";
-        btnBulk.style.display = "none";
-        btnMore.style.display = "block";
-    }
-    saveData();
-}
-
-// Analytics Processing Logic Engine (FIXED)
-function calculateAnalytics() {
-    let virtualHistory = [...historyLog];
-    
-    // Include current live active day tracking into analytics display
-    if (dailyTotal > 0 || completed > 0) {
-        virtualHistory.push({ date: today, completed: completed, target: dailyTotal });
-    }
-
-    // Target table body elements
-    const summaryBox = document.getElementById('analytics-history-log');
-    const tableBody = document.getElementById('ledger-table-body');
-
-    if (virtualHistory.length === 0 || (virtualHistory.length === 1 && virtualHistory[0].target === 0)) {
-        document.getElementById('stat-avg').innerText = "0.0";
-        document.getElementById('stat-peak').innerText = "0";
-        document.getElementById('stat-eff').innerText = "0%";
-        summaryBox.innerText = "No operations executed in timeline.";
-        tableBody.innerHTML = "<tr><td colspan='4' style='text-align:center; color:#555;'>NO HISTORY LOGGED YET</td></tr>";
-        return;
-    }
-
-    let totalCompleted = 0;
-    let highestPeak = 0;
-    let successfulDays = 0;
-    let summaryHTML = "";
-    let ledgerHTML = "";
-
-    virtualHistory.forEach(entry => {
-        totalCompleted += entry.completed;
-        if (entry.completed > highestPeak) highestPeak = entry.completed;
-        
-        let isSuccess = entry.completed >= entry.target && entry.target > 0;
-        if (isSuccess) successfulDays++;
-        
-        // Short Format Summary
-        summaryHTML += `<div>• ${entry.date.substring(4, 10)}: ${entry.completed}/${entry.target} Bricks</div>`;
-        
-        // Full Details Tabular Ledger Format
-        let shortDate = entry.date.substring(4, 10); 
-        let percentage = entry.target > 0 ? Math.round((entry.completed / entry.target) * 100) : 0;
-        let accClass = isSuccess ? "ledger-success" : "ledger-miss";
-        
-        ledgerHTML += `<tr>
-            <td>${shortDate}</td>
-            <td>${entry.target}</td>
-            <td>${entry.completed}</td>
-            <td class="${accClass}">${percentage}%</td>
-        </tr>`;
+    return new Promise((resolve, reject) => {
+        const req = indexedDB.open(DB_NAME, DB_VERSION);
+        req.onupgradeneeded = (e) => {
+            const db = e.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                db.createObjectStore(STORE_NAME);
+            }
+        };
+        req.onsuccess = (e) => {
+            dbInstance = e.target.result;
+            resolve();
+        };
+        req.onerror = () => reject(req.error);
     });
-
-    let avgValue = (totalCompleted / virtualHistory.length).toFixed(1);
-    let efficiencyRate = Math.round((successfulDays / virtualHistory.length) * 100);
-
-    document.getElementById('stat-avg').innerText = avgValue;
-    document.getElementById('stat-peak').innerText = highestPeak;
-    document.getElementById('stat-eff').innerText = `${efficiencyRate}%`;
-    summaryBox.innerHTML = summaryHTML;
-    tableBody.innerHTML = ledgerHTML;
 }
 
-
-function setTarget() {
-    let target = prompt("Set today's target (Number of bricks):");
-    if (target && !isNaN(target) && target > 0) {
-        pending = parseInt(target);
-        dailyTotal = pending;
-        document.getElementById('status-msg').innerText = "Target locked. Start stacking.";
-        document.getElementById('status-msg').style.color = "#888";
-        playThwompSound();
-        updateUI();
-    }
+async function getStorage(key, fallback) {
+    if (!dbInstance) return JSON.parse(localStorage.getItem(key)) ?? fallback;
+    return new Promise((resolve) => {
+        const tx = dbInstance.transaction(STORE_NAME, 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.get(key);
+        req.onsuccess = () => resolve(req.result !== undefined ? req.result : (JSON.parse(localStorage.getItem(key)) ?? fallback));
+        req.onerror = () => resolve(JSON.parse(localStorage.getItem(key)) ?? fallback);
+    });
 }
 
-function addMoreTarget() {
-    let extra = prompt("How many overtime bricks are you adding?");
-    if (extra && !isNaN(extra) && extra > 0) {
-        pending += parseInt(extra);
-        dailyTotal += parseInt(extra);
-        document.getElementById('status-msg').innerText = "Overtime authorized. Grind.";
-        playThwompSound();
-        updateUI();
-    }
+async function setStorage(key, val) {
+    localStorage.setItem(key, JSON.stringify(val)); // Mirror to LocalStorage
+    if (!dbInstance) return;
+    const tx = dbInstance.transaction(STORE_NAME, 'readwrite');
+    tx.objectStore(STORE_NAME).put(val, key);
 }
 
-function processTransfer(amount) {
-    if (amount > pending) amount = pending;
+// --- App State ---
+let pending = 0;
+let completed = 0;
+let lifetime = 0;
+let streak = 0;
+let dailyTotal = 0;
+let lastDate = null;
+let historyLog = [];
 
-    pending -= amount;
-    completed += amount;
-    lifetime += amount;
-    
-    playThwompSound();
+let undoBuffer = null;
+let undoTimeout = null;
 
-    if (pending === 0) {
-        streak += 1; 
-        const tasks = ["Drop and give me 5 pushups!", "10 squats right now!", "Hold a 15-second plank!"];
-        const task = tasks[Math.floor(Math.random() * tasks.length)];
-        
-        document.getElementById('status-msg').innerText = `TARGET DESTROYED! ${task}`;
-        document.getElementById('status-msg').style.color = "#2ecc71";
-        
-        if (typeof confetti === 'function') {
-            confetti({ particleCount: 250, spread: 120, origin: { y: 0.6 }, colors: ['#f39c12', '#2ecc71', '#e74c3c'] });
-        }
-    } else {
-        const msgs = ["Solid rep.", "Keep pushing.", "Momentum.", "Don't stop.", "Brick by brick."];
-        document.getElementById('status-msg').innerText = `+${amount} stacked. ${msgs[Math.floor(Math.random() * msgs.length)]}`;
-        document.getElementById('status-msg').style.color = "#aaaaaa";
-    }
+const getISODate = (d = new Date()) => d.toISOString().split('T')[0];
+const todayStr = getISODate();
+
+// --- Hardware Synthesizer ---
+let audioCtx;
+function playThwomp(freq = 600) {
+    try {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(35, audioCtx.currentTime + 0.1);
+        gain.gain.setValueAtTime(0.8, audioCtx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.1);
+    } catch (e) {}
+}
+
+// --- Lifecycle & Date Engine ---
+async function bootEngine() {
+    await initDB();
+    pending = await getStorage('stackerPending', 0);
+    completed = await getStorage('stackerCompleted', 0);
+    lifetime = await getStorage('stackerLifetime', 0);
+    streak = await getStorage('stackerStreak', 0);
+    dailyTotal = await getStorage('stackerDailyTotal', 0);
+    lastDate = await getStorage('stackerDate', null);
+    historyLog = await getStorage('stackerHistory', []);
+
+    evaluateDateTransitions();
+    calculatePresetValues();
     updateUI();
 }
 
-function transferOne() { processTransfer(1); }
-function transferBulk() {
-    let amount = prompt("How many bricks are you moving?");
-    if (amount && !isNaN(amount) && amount > 0) processTransfer(parseInt(amount));
+function evaluateDateTransitions() {
+    if (!lastDate) {
+        lastDate = todayStr;
+        persistState();
+        return;
+    }
+
+    if (lastDate !== todayStr) {
+        const now = new Date();
+        const isPastNoon = now.getHours() >= 12;
+        
+        // Show grace period banner if before noon and unresolved work exists
+        if (!isPastNoon && dailyTotal > 0 && completed < dailyTotal) {
+            document.getElementById('grace-banner').style.display = 'flex';
+        } else {
+            finalizePastDay(completed >= dailyTotal && dailyTotal > 0 ? 'completed' : 'missed');
+        }
+    }
+}
+
+function finalizePastDay(status, backfilledBricks = 0) {
+    const finalCompleted = completed + backfilledBricks;
+    if (dailyTotal > 0 || status === 'rest') {
+        historyLog.unshift({
+            date: lastDate,
+            target: dailyTotal,
+            completed: finalCompleted,
+            status: status
+        });
+        if (status === 'completed') streak += 1;
+        else if (status === 'missed') streak = 0;
+        // status === 'rest' keeps streak locked
+    }
+
+    lifetime += backfilledBricks;
+    pending = 0;
+    completed = 0;
+    dailyTotal = 0;
+    lastDate = todayStr;
+    document.getElementById('grace-banner').style.display = 'none';
+
+    persistState();
+    updateUI();
+}
+
+function resolveGrace(action) {
+    if (action === 'backfill') {
+        const amt = parseInt(prompt("Enter bricks finished yesterday:", "0")) || 0;
+        finalizePastDay(amt + completed >= dailyTotal ? 'completed' : 'missed', amt);
+    } else if (action === 'rest') {
+        finalizePastDay('rest', 0);
+    } else {
+        finalizePastDay('missed', 0);
+    }
+}
+
+// --- Target Presets (Rolling 7-Day Median) ---
+function get7DayMedian() {
+    const activeDays = historyLog
+        .filter(item => item.status === 'completed' || item.status === 'missed')
+        .slice(0, 7)
+        .map(i => i.completed)
+        .sort((a, b) => a - b);
+
+    if (activeDays.length === 0) return 20;
+    const mid = Math.floor(activeDays.length / 2);
+    return activeDays.length % 2 !== 0 ? activeDays[mid] : Math.round((activeDays[mid - 1] + activeDays[mid]) / 2);
+}
+
+function calculatePresetValues() {
+    const median = get7DayMedian();
+    document.getElementById('preset-val-light').textContent = Math.round(median * 0.7);
+    document.getElementById('preset-val-std').textContent = median;
+    document.getElementById('preset-val-push').textContent = Math.round(median * 1.2);
+}
+
+function toggleTargetSelector() {
+    const el = document.getElementById('target-selector-row');
+    el.style.display = el.style.display === 'none' ? 'flex' : 'none';
+    calculatePresetValues();
+}
+
+function applyPreset(type) {
+    const median = get7DayMedian();
+    let val = median;
+    if (type === 'light') val = Math.round(median * 0.7);
+    if (type === 'push') val = Math.round(median * 1.2);
+
+    dailyTotal = val;
+    pending = val;
+    completed = 0;
+    document.getElementById('target-selector-row').style.display = 'none';
+    persistState();
+    updateUI();
+    playThwomp(700);
+}
+
+// --- Execution & Tactile Feedback ---
+function transferBricks(count) {
+    if (pending <= 0) return;
+    const actual = Math.min(count, pending);
+
+    // Save for undo buffer
+    setUndoBuffer(actual);
+
+    pending -= actual;
+    completed += actual;
+    lifetime += actual;
+
+    playThwomp();
+    persistState();
+    updateUI();
+
+    if (dailyTotal > 0 && completed >= dailyTotal && typeof confetti === 'function') {
+        confetti({ particleCount: 120, spread: 70, origin: { y: 0.65 } });
+    }
+}
+
+function setUndoBuffer(count) {
+    clearTimeout(undoTimeout);
+    undoBuffer = count;
+    const btn = document.getElementById('btn-undo');
+    document.getElementById('undo-count').textContent = count;
+    btn.style.display = 'block';
+
+    undoTimeout = setTimeout(() => {
+        undoBuffer = null;
+        btn.style.display = 'none';
+    }, 5000);
+}
+
+function undoLastAction() {
+    if (!undoBuffer) return;
+    pending += undoBuffer;
+    completed -= undoBuffer;
+    lifetime -= undoBuffer;
+    undoBuffer = null;
+    clearTimeout(undoTimeout);
+    document.getElementById('btn-undo').style.display = 'none';
+
+    persistState();
+    updateUI();
+    playThwomp(300);
+}
+
+function addMoreTarget() {
+    const count = parseInt(prompt("Add extra overtime bricks:"));
+    if (!isNaN(count) && count > 0) {
+        dailyTotal += count;
+        pending += count;
+        persistState();
+        updateUI();
+        playThwomp(700);
+    }
+}
+
+// --- UI Synchronization ---
+function updateUI() {
+    document.getElementById('pending-count').textContent = pending;
+    document.getElementById('completed-count').textContent = completed;
+    document.getElementById('lifetime-display').textContent = `🧱 Lifetime: ${lifetime}`;
+    document.getElementById('streak-display').textContent = `🔥 Streak: ${streak}`;
+
+    const total = dailyTotal > 0 ? dailyTotal : (pending + completed);
+    const pct = total > 0 ? Math.min((completed / total) * 100, 100) : 0;
+    document.getElementById('progress-bar').style.width = `${pct}%`;
+
+    const statusMsg = document.getElementById('status-msg');
+    const overtimeBtn = document.getElementById('btn-more');
+    const setTargetBtn = document.getElementById('btn-set');
+
+    if (dailyTotal > 0 && completed >= dailyTotal) {
+        statusMsg.textContent = "Daily target crushed! Overtime active.";
+        statusMsg.style.color = "#2ecc71";
+        overtimeBtn.style.display = "block";
+        setTargetBtn.style.display = "none";
+    } else if (dailyTotal > 0) {
+        statusMsg.textContent = `Pending operations: ${pending}`;
+        statusMsg.style.color = "#888";
+        overtimeBtn.style.display = "none";
+        setTargetBtn.style.display = "block";
+    } else {
+        statusMsg.textContent = "Hardware online. Set a daily target.";
+        statusMsg.style.color = "#888";
+        overtimeBtn.style.display = "none";
+        setTargetBtn.style.display = "block";
+    }
+}
+
+// --- Diagnostics ---
+function calculateAnalytics() {
+    const medVal = get7DayMedian();
+    document.getElementById('stat-median').textContent = medVal;
+
+    let peak = completed;
+    let successCount = (dailyTotal > 0 && completed >= dailyTotal) ? 1 : 0;
+    let evalCount = dailyTotal > 0 ? 1 : 0;
+
+    historyLog.forEach(h => {
+        if (h.completed > peak) peak = h.completed;
+        if (h.status === 'completed') successCount++;
+        if (h.status !== 'rest') evalCount++;
+    });
+
+    document.getElementById('stat-peak').textContent = peak;
+    document.getElementById('stat-eff').textContent = evalCount > 0 ? `${Math.round((successCount / evalCount) * 100)}%` : '0%';
+
+    // Feed
+    const historyBox = document.getElementById('analytics-history-log');
+    historyBox.innerHTML = historyLog.length === 0 ? '<p>No records.</p>' : '';
+    historyLog.slice(0, 5).forEach(e => {
+        const div = document.createElement('div');
+        div.textContent = `[${e.date}] ${e.status.toUpperCase()} - ${e.completed}/${e.target}`;
+        historyBox.appendChild(div);
+    });
+
+    // Detailed Ledger
+    const tbody = document.getElementById('ledger-table-body');
+    tbody.innerHTML = '';
+    historyLog.forEach(e => {
+        const tr = document.createElement('tr');
+        const cssClass = e.status === 'completed' ? 'ledger-success' : (e.status === 'rest' ? 'ledger-rest' : 'ledger-miss');
+        tr.innerHTML = `
+            <td>${e.date}</td>
+            <td>${e.target}</td>
+            <td>${e.completed}</td>
+            <td class="${cssClass}">${e.status.toUpperCase()}</td>
+        `;
+        tbody.appendChild(tr);
+    });
+}
+
+// --- Backup & Restore Engine ---
+function exportDataBackup() {
+    const data = { pending, completed, lifetime, streak, dailyTotal, lastDate, historyLog };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `stacker_backup_${todayStr}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+}
+
+function importDataBackup(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async (event) => {
+        try {
+            const data = JSON.parse(event.target.result);
+            pending = data.pending || 0;
+            completed = data.completed || 0;
+            lifetime = data.lifetime || 0;
+            streak = data.streak || 0;
+            dailyTotal = data.dailyTotal || 0;
+            lastDate = data.lastDate || todayStr;
+            historyLog = data.historyLog || [];
+
+            persistState();
+            updateUI();
+            alert("Terminal data restored successfully.");
+        } catch (err) {
+            alert("Invalid backup configuration file.");
+        }
+    };
+    reader.readAsText(file);
+}
+
+// --- Modals & Utilities ---
+function toggleModal(id) {
+    const modal = document.getElementById(id);
+    modal.style.display = modal.style.display === "flex" ? "none" : "flex";
+    playThwomp();
+}
+
+function toggleLedgerView(show) {
+    document.getElementById('analytics-summary-view').style.display = show ? 'none' : 'block';
+    document.getElementById('analytics-ledger-view').style.display = show ? 'block' : 'none';
+    playThwomp();
+}
+
+function persistState() {
+    setStorage('stackerPending', pending);
+    setStorage('stackerCompleted', completed);
+    setStorage('stackerLifetime', lifetime);
+    setStorage('stackerStreak', streak);
+    setStorage('stackerDailyTotal', dailyTotal);
+    setStorage('stackerDate', lastDate);
+    setStorage('stackerHistory', historyLog);
 }
 
 function hardResetSystem() {
-    if (confirm("WARNING: Permanent wipe authorized. This removes all streaks, memory arrays, and history logs. Proceed?")) {
+    if (confirm("Execute hard factory purge? All local databases will be cleared.")) {
         localStorage.clear();
+        if (dbInstance) {
+            const tx = dbInstance.transaction(STORE_NAME, 'readwrite');
+            tx.objectStore(STORE_NAME).clear();
+        }
         location.reload();
     }
 }
 
-window.onload = function() {
-    document.body.addEventListener('click', () => {
-        if (!audioCtx) {
-            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        }
-        if (audioCtx.state === 'suspended') audioCtx.resume();
-    }, { once: true });
-    updateUI();
-};
-
+// Ignition
+bootEngine();
 
 
 
