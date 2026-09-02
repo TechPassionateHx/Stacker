@@ -1,4 +1,4 @@
-# Stacker 🧱
+# Stacker V3 🧱
 
 A lightweight, gamified progress tracker engineered to hack the dopamine reward system for deep work, exam preparation, and high-friction tasks.
 
