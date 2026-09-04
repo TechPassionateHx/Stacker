@@ -36,7 +36,7 @@ async function getStorage(key, fallback) {
 }
 
 async function setStorage(key, val) {
-    localStorage.setItem(key, JSON.stringify(val)); // Mirror to LocalStorage
+    localStorage.setItem(key, JSON.stringify(val));
     if (!dbInstance) return;
     const tx = dbInstance.transaction(STORE_NAME, 'readwrite');
     tx.objectStore(STORE_NAME).put(val, key);
@@ -54,8 +54,15 @@ let historyLog = [];
 let undoBuffer = null;
 let undoTimeout = null;
 
-const getISODate = (d = new Date()) => d.toISOString().split('T')[0];
-const todayStr = getISODate();
+// Local date string generator (YYYY-MM-DD) avoiding UTC shifts
+function getLocalISODate(d = new Date()) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+}
+
+const todayStr = getLocalISODate();
 
 // --- Hardware Synthesizer ---
 let audioCtx;
@@ -101,11 +108,15 @@ function evaluateDateTransitions() {
     }
 
     if (lastDate !== todayStr) {
+        const last = new Date(lastDate);
+        const current = new Date(todayStr);
+        const dayDifference = Math.round((current - last) / (1000 * 60 * 60 * 24));
+
         const now = new Date();
         const isPastNoon = now.getHours() >= 12;
-        
-        // Show grace period banner if before noon and unresolved work exists
-        if (!isPastNoon && dailyTotal > 0 && completed < dailyTotal) {
+
+        // Grace period applies ONLY if exactly 1 day passed AND it's before noon
+        if (dayDifference === 1 && !isPastNoon && dailyTotal > 0 && completed < dailyTotal) {
             document.getElementById('grace-banner').style.display = 'flex';
         } else {
             finalizePastDay(completed >= dailyTotal && dailyTotal > 0 ? 'completed' : 'missed');
@@ -115,16 +126,19 @@ function evaluateDateTransitions() {
 
 function finalizePastDay(status, backfilledBricks = 0) {
     const finalCompleted = completed + backfilledBricks;
-    if (dailyTotal > 0 || status === 'rest') {
+    const recordedTarget = dailyTotal > 0 ? dailyTotal : (finalCompleted > 0 ? finalCompleted : 0);
+
+    // Save record to history even if target was 0
+    if (recordedTarget > 0 || status === 'rest') {
         historyLog.unshift({
             date: lastDate,
-            target: dailyTotal,
+            target: recordedTarget,
             completed: finalCompleted,
             status: status
         });
+
         if (status === 'completed') streak += 1;
         else if (status === 'missed') streak = 0;
-        // status === 'rest' keeps streak locked
     }
 
     lifetime += backfilledBricks;
@@ -195,7 +209,6 @@ function transferBricks(count) {
     if (pending <= 0) return;
     const actual = Math.min(count, pending);
 
-    // Save for undo buffer
     setUndoBuffer(actual);
 
     pending -= actual;
