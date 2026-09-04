@@ -413,5 +413,20 @@ function hardResetSystem() {
 bootEngine();
 
 
+function emergencySync() {
+    const fixedHistory = [
+        { date: "2026-09-03", target: 44, completed: 12, status: "missed" },
+        { date: "2026-09-02", target: 44, completed: 44, status: "completed" }
+    ];
+    setStorage('stackerHistory', fixedHistory);
+    setStorage('stackerLifetime', 59);
+    setStorage('stackerPending', 50);
+    setStorage('stackerCompleted', 3);
+    setStorage('stackerDailyTotal', 53);
+    setStorage('stackerDate', todayStr);
+    setStorage('stackerStreak', 0);
+    alert("Synced to Today (Sept 4)! Tap OK to refresh.");
+    location.reload();
+}
 
 
